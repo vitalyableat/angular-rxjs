@@ -1,0 +1,12 @@
+<h1>Component 2</h1>
+<div style="display:flex; flex-direction: column;">
+  <p><b>Output: </b></p>
+  <p *ngFor="let value of output" style="margin: 0">
+    {{value}}
+  </p>
+</div>
+<div style="display: flex; gap: 16px;">
+  <button (click)="lastOf3AfterEachUpdate()">Last of 3 After Each Update</button>
+  <button (click)="whenAllStop()">When All Stop</button>
+  <button (click)="whenAllUpdated()">When All Updated</button>
+</div>
