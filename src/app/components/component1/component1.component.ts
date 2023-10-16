@@ -1,23 +1,26 @@
 import { Component } from '@angular/core';
-import {MainStreamService} from "../../services/main-stream.service";
-import {filter, map, OperatorFunction, take, takeUntil, tap} from "rxjs";
-import {DestroyStreamService} from "../../services/destroy-stream.service";
+import { MainStreamService } from "../../services/main-stream.service";
+import { filter, map, OperatorFunction, Subject, take, takeUntil } from "rxjs";
 
 @Component({
   selector: 'app-component1',
   templateUrl: './component1.component.html'
 })
 export class Component1Component {
+  destroy$: Subject<void> = new Subject<void>();
   numbers: number[] = [];
 
-  constructor(private mainStreamService: MainStreamService,
-              private destroyStreamService: DestroyStreamService) {}
+  constructor(private mainStreamService: MainStreamService) {}
+
+  stopStream() {
+    this.destroy$.next();
+  }
 
   streamLogic(operator: OperatorFunction<number, number>) {
-    this.destroyStreamService.stopStream();
+    this.stopStream();
     this.numbers = [];
     this.mainStreamService.getNumberStream()
-      .pipe(takeUntil(this.destroyStreamService.destroy$), operator)
+      .pipe(takeUntil(this.destroy$), operator)
       .subscribe((number) => {
           this.numbers = [...this.numbers, number];
         },
@@ -37,6 +40,7 @@ export class Component1Component {
   }
 
   ngOnDestroy() {
-    this.destroyStreamService.competeStream();
+    this.stopStream();
+    this.destroy$.complete();
   }
 }

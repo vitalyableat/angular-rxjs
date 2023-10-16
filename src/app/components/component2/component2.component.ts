@@ -1,6 +1,5 @@
 import { Component } from '@angular/core';
 import {MainStreamService} from "../../services/main-stream.service";
-import {DestroyStreamService} from "../../services/destroy-stream.service";
 import {
   concatMap,
   delay,
@@ -10,7 +9,7 @@ import {
   mergeMap,
   of,
   OperatorFunction,
-  repeat,
+  repeat, Subject, switchMap,
   take,
   takeUntil
 } from "rxjs";
@@ -20,25 +19,29 @@ import {
   templateUrl: './component2.component.html',
 })
 export class Component2Component {
+  destroy$: Subject<void> = new Subject<void>();
   numbers: number[] = [];
 
-  constructor(private mainStreamService: MainStreamService,
-              private destroyStreamService: DestroyStreamService) {}
+  constructor(private mainStreamService: MainStreamService) {}
+
+  stopStream() {
+    this.destroy$.next();
+  }
 
   streamLogic(...operators: OperatorFunction<any, any>[]) {
-    this.destroyStreamService.stopStream();
+    this.stopStream();
     this.numbers = [];
     this.mainStreamService.getNumberStream()
       //@ts-ignore
       .pipe(...operators)
-      .pipe(takeUntil(this.destroyStreamService.destroy$))
+      .pipe(takeUntil(this.destroy$))
       .subscribe(number => {
         this.numbers = [...this.numbers, number];
       });
   }
 
   delay200ms() {
-    this.streamLogic(exhaustMap((value) => of(value).pipe(delay(200), repeat(200), takeUntil(this.mainStreamService.getNumberStream()))))
+    this.streamLogic(switchMap((value) => of(value).pipe(delay(200), repeat(200), takeUntil(this.mainStreamService.getNumberStream()))))
   }
 
   interval100NewStream() {
@@ -46,7 +49,7 @@ export class Component2Component {
   }
 
   getEvenValue5Times() {
-    this.streamLogic(filter(v => v % 2 === 0), concatMap((value) => of(value).pipe(delay(400), repeat(5))))
+    this.streamLogic(filter(v => v % 2 === 0), exhaustMap((value) => of(value).pipe(delay(400), repeat(5))))
   }
 
   everyValue5Times() {
@@ -54,6 +57,7 @@ export class Component2Component {
   }
 
   ngOnDestroy() {
-    this.destroyStreamService.competeStream();
+    this.stopStream();
+    this.destroy$.complete();
   }
 }
